@@ -340,29 +340,44 @@ K-D 树的构建时间复杂度为 $O(N\log N)$，
 
 \subsection{场景数据的存储}
 
-为了使运行时的动态加载更加高效，
-本项目在预处理阶段提前将所有场景数据存储在一起，
-并将其划分成页。
-场景数据以簇组为单位进行存储，
-这是因为在任务着色器中，剔除和 LOD 选择实际上都是以
-簇组为单位进行的。
-换而言之，每个簇组，要么全被绘制，要么都不被绘制。
-以簇组为单位同时存储模型的顶点和索引信息，
-能够最好地保证空间局部性，有效减少后续动态加载过程中
-换入换出的次数，降低页表压力。
+为了提高运行时动态加载效率，  
+本项目在预处理阶段存储场景数据，并按页划分。  
+数据存储以簇组为单位，  
+因为任务着色器中的剔除和 LOD 选择是以簇组为单位进行的。  
+即，一个簇组要么完全渲染，要么完全不渲染。
+当一个簇组需要渲染时，  
+只需加载该簇组所在的页到 GPU 中。  
+按簇组存储顶点和索引信息，  
+有助于提高空间局部性（spatial locality），  
+减少数据交换频率，有效降低页表压力，并提升 GPU 显存利用率。
 
 \subsection{动态加载}
 
+在任务着色器中，所有簇组都需要经过剔除和 LOD 选择操作，只有通过这两个测试的簇组才会被渲染并加载到 GPU 显存中。因此，在 GPU 的任务着色器中，需要记录每个待渲染簇组对应的数据页编号，并将这些编号传回给 CPU。CPU 使用一个页表来管理这些数据页，并通过 Vulkan 的稀疏资源特性实现数据页的动态绑定。
+
 \subsubsection{页表的管理}
 
-换入换出策略，可以放页表的示意图
-可以提一下页表满了的解决方案
+在本项目中，页表的容量和数据页的大小都是固定的。每个页表条目对应一个显存块。当 GPU 请求新的数据页时，CPU 会检查页表是否有空闲位置。如果没有空闲位置，则会选择一个当前未使用的数据页进行换出。页表的示意图如 \autoref{fig:page table} 所示。
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\linewidth]{DAG.png}
+    \caption{\label{fig:page}页表示意图}
+\end{figure}
+
+目前，本项目实现了两种数据页换入换出策略：一种是随机替换策略，当页表已满时，随机选择一个未在当前帧使用的数据页进行换出；另一种是 LRU（最近最少使用）替换策略，它选择最近最少使用的数据页进行换出。在 \ref{subsec:streaming test} 中，我们将对这两种策略的性能进行比较。
+
+在极端情况下，若当前视角需要加载的场景数据过多，而页表中的所有数据页都已被当前帧使用，导致无法换入新的数据页，可能会造成场景中的空洞。为应对这种情况，本项目借鉴了类似于拥塞控制的思路（此处可引用），当页表压力过大时，会适当降低 LOD 选择的标准，即提高 \ref{subsec:run-time lod select} 中提到的 $lod_threshold$，采取更为激进的 LOD 选择策略。即使是距离相机较近的物体，也可能会选择较为粗糙的 LOD。而当页表压力恢复到正常水平时，可以逐步恢复原有的 LOD 选择策略。虽然这种策略会略微降低画面质量，但能有效避免场景中出现空洞，保持页表的稳定运行。
 
 \subsubsection{稀疏资源}
 
-如何做动态加载，用Sparse Resources
+稀疏资源是 Vulkan 1.2 引入的一个重要特性，主要用于虚拟几何、虚拟纹理等场景。传统的 Vulkan 资源需要连续、完整地绑定到单个显存块，并且在生命周期内绑定关系无法修改。而稀疏资源打破了这些限制，它不仅支持将资源分布到多个显存块，还允许在运行时动态修改绑定关系。这一特性为实现高效的动态加载提供了极大的便利。
 
-\subsection{测试分析报告}
+在本项目中，我们利用 Vulkan 的稀疏资源功能，创建了一个非常大的缓冲区来存储场景数据。该缓冲区按页划分并绑定到不同的显存块上。部分缓冲区位置甚至没有存储任何数据，以节省显存空间。如 \autoref{fig:page table} 所示，页表管理着每个数据页的加载状态。
+
+需要注意的是，Vulkan 对缓冲区的最大大小有限制。因此，这个逻辑上的缓冲区实际上由多个大小相同的缓冲区组成。在网格着色器中，只需根据当前需要的数据页，计算其所在的缓冲区位置即可。而在任务着色器阶段，我们确保网格着色器只会访问已加载数据的部分，避免访问到未加载的空白区域。
+
+\subsection{测试分析报告} \label{subsec:streaming test}
 
 可以测试LRU、随机两种不同方法的time、换入换出次数等
 还可以测试Page Size大小的影响
@@ -372,83 +387,3 @@ K-D 树的构建时间复杂度为 $O(N\log N)$，
 \section{Overleaf 使用注意事项}
 
 如果你在Overleaf上编译本模板，请注意如下事项~\cite{zjuthesis}：
-
-\begin{itemize}
-    \item 删除根目录的 ``.latexmkrc'' 文件，否则编译失败且不报任何错误
-    \item 字体有版权所以本模板不能附带字体，请务必手动上传字体文件，并在各个专业模板下手动指定字体。
-        具体方法参照 GitHub 主页的说明。
-    \item 当前（2019年9月2日）的Overleaf使用TexLive 2017进行编译，但一些伪粗体复制乱码的问题需要TexLive 2019版本来解决。
-        所以各位同学可以在Overleaf上编写论文，但务必使用本地的TexLive 2019来进行最终编译，以免产生查重相关问题。
-        具体说明参照 GitHub 主页。
-\end{itemize}
-
-\subsection{节标题}
-
-\subsubsection{小节标题}
-
-\par 我们可以用includegraphics来插入现有的jpg等格式的图片，如\autoref{fig:zju-logo}。
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=.4\linewidth]{logo/zju}
-    \caption{\label{fig:zju-logo}浙江大学LOGO}
-\end{figure}
-
-\par 如\autoref{tab:sample}所示，这是一张自动调节列宽的表格。
-
-\begin{table}[ht]
-    \caption{\label{tab:sample}自动调节列宽的表格}
-    \begin{tabularx}{\linewidth}{|c|X<{\centering}|}
-        \hline
-        第一列 & 第二列 \\ \hline
-        xxx & xxx \\ \hline
-        xxx & xxx \\ \hline
-        xxx & xxx \\ \hline
-    \end{tabularx}
-\end{table}
-
-\par 如\autoref{equ:sample}，这是一个公式
-
-\begin{equation}
-    \label{equ:sample}
-    A=\overbrace{(a+b+c)+\underbrace{i(d+e+f)}_{\text{虚数}}}^{\text{复数}}
-\end{equation}
-
-\par 如\autoref{code:sample}所示，这是一段代码。
-计算机学院的代码样式可能与其他专业不同，
-如有需要，可以从计算机学院专业模板中复制相关的代码样式设定。
-
-\begin{lstlisting}[%
-    language={C},
-    caption={simple.c},
-    label={code:sample}
-]
-#include <stdio.h>
-
-int main(int argc, char *argv[])
-{
-    printf("Hello, zjuthesis\n");
-    return 0;
-}
-\end{lstlisting}
-
-\subsection{关于字体}
-
-英文字体通常提供了粗体和斜体的组合，中文字体通常没有粗体或斜体，本模板使用了 `AutoFakeBold' 来实现中文伪粗体，但不提供中文斜体，如\autoref{tab:font-examples}所示。
-
-\begin{table}
-    \centering
-    \caption{一些字体示例}
-    \label{tab:font-examples}
-    \begin{tabular}{|c|c|c|c|c|}
-        \hline
-        字体            & 常规             & 粗体                       & 斜体                      & 粗斜体                                \\ \hline
-        Times New Roman & Regular         & {\bfseries          Bold} & {\itshape         Italic} & {\bfseries \itshape      BoldItalic} \\ \hline
-        仿宋            & {\fangsong 常规} & {\fangsong \bfseries 粗体} & {\fangsong \itshape 斜体} & {\fangsong \bfseries \itshape 粗斜体} \\ \hline
-        宋体            & {\songti   常规} & {\songti   \bfseries 粗体} & {\songti   \itshape 斜体} & {\songti   \bfseries \itshape 粗斜体} \\ \hline
-        黑体            & {\heiti    常规} & {\heiti    \bfseries 粗体} & {\heiti    \itshape 斜体} & {\heiti    \bfseries \itshape 粗斜体} \\ \hline
-        楷体            & {\kaishu   常规} & {\kaishu   \bfseries 粗体} & {\kaishu   \itshape 斜体} & {\kaishu   \bfseries \itshape 粗斜体} \\ \hline
-    \end{tabular}
-\end{table}
-
-\sectionnonum[none]{同一页上的章标题}
