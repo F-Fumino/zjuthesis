@@ -200,11 +200,9 @@ LOD 生成部分参考了 Nanite 的核心思想，整体过程大致可以分�
 \begin{enumerate}
     \item 将初始模型划分为簇；
     \item 根据簇之间的连接性，将簇组织成簇组，每个簇组最多包含 16 个簇；
-    \item 对每个簇组进行独立简化，确保每个簇组的边界完整，
-    从而避免不同 LOD 之间出现裂缝；
+    \item 对每个簇组进行独立简化，确保每个簇组的边界完整，从而避免不同 LOD 之间出现裂缝；
     \item 将简化后的簇组重新划分为新的簇；
-    \item 如果新的簇数量仍然过多，则返回步骤 2 进行进一步简化；
-    否则，结束生成过程。
+    \item 如果新的簇数量仍然过多，则返回步骤 2 进行进一步简化；否则，结束生成过程。
 \end{enumerate}
 
 其中，步骤 1 已经在 \ref{subsubsec:cluster division} 节中，
@@ -269,9 +267,7 @@ K-D 树的构建时间复杂度为 $O(N\log N)$，
 
 \subsection{测试分析报告}
 
-本项目首先使用 Sponza 场景的一部分，
-对 LOD 生成的效果进行了测试，如\autoref{fig:LOD generation} 所示。
-各级 LOD 对应的顶点数、三角形数和簇数如\autoref{tab:LOD} 所示。
+本项目首先使用 Sponza 场景的一部分，对 LOD 生成的效果进行了测试，如\autoref{fig:LOD generation}所示。各级 LOD 对应的顶点数、三角形数和簇数如\autoref{tab:LOD}所示。
 
 \begin{figure}[!htb]
     \centering
@@ -290,12 +286,53 @@ K-D 树的构建时间复杂度为 $O(N\log N)$，
     \end{tabularx}
 \end{table}
 
-从上述数据可以看出，LOD 生成的核心功能基本实现，
-随着 LOD 级别的增大，顶点数、三角形数和簇数
-都有了明显下降，效果良好。
+从上述数据可以看出，LOD 生成的核心功能基本实现，随着 LOD 级别的增大，顶点数、三角形数和簇数都有了明显下降，效果良好。
 
-此外，本项目还对运行时 LOD 的选择进行了简单测试，效果如
+本项目对运行时 LOD 选择进行了初步测试，展示了远景、中景和近景的效果以及 LOD 可视化结果，并与未使用 LOD 的原始场景对比（见\autoref{fig:LOD select}）。图中第一行显示原始场景，第二行为使用 LOD 的场景，第三行为 LOD 可视化图，其中蓝色表示最精细的 LOD，红色为最粗糙的 LOD，紫色为介于两者之间的 LOD 级别。
 
+\begin{figure*}[h]
+    \centering
+    % 第一列（远景）
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=2.0in]{远LOD0.png}\\
+        \vspace{0.02cm}
+        \includegraphics[width=2.0in]{远LOD.png}\\
+        \vspace{0.02cm}
+        \includegraphics[width=2.0in]{远LODv.png}\\
+        \vspace{0.02cm}
+        \caption{远景}
+    \end{subfigure}%
+    \hfill % 确保子图之间有空隙
+    % 第二列（中景）
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=2.0in]{中LOD0.png}\\
+        \vspace{0.02cm}
+        \includegraphics[width=2.0in]{中LOD.png}\\
+        \vspace{0.02cm}
+        \includegraphics[width=2.0in]{中LODv.png}\\
+        \vspace{0.02cm}
+        \caption{中景}
+    \end{subfigure}%
+    \hfill % 确保子图之间有空隙
+    % 第三列（近景）
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=2.0in]{近LOD0.png}\\
+        \vspace{0.02cm}
+        \includegraphics[width=2.0in]{近LOD.png}\\
+        \vspace{0.02cm}
+        \includegraphics[width=2.0in]{近LODv.png}\\
+        \vspace{0.02cm}
+        \caption{近景}
+    \end{subfigure}
+    \caption{LOD选择策略在不同视距下的应用效果}
+    \vspace{-0.2cm}
+    \label{fig:LOD select}
+\end{figure*}
+
+从图中可以观察到，当模型位于远景时，场景中大部分模型使用的是最粗糙的LOD（红色区域）；而在中景区域，较精细的LOD占据了主要部分，蓝色和紫色为主；当模型接近相机时，使用的LOD则大多是最精细的（蓝色区域）。这表明，本项目的LOD选择逻辑在实际应用中表现得较为合理和有效。
 
 \section{流式加载}
 
@@ -341,7 +378,7 @@ K-D 树的构建时间复杂度为 $O(N\log N)$，
 
 \subsection{测试分析报告} \label{subsec:streaming test}
 
-本项目使用了固定的相机轨迹，在Factory场景下测试了两种不同换页策略的性能并加以比较，如表\autoref{tab:swap page}所示。
+在本项目中，我们使用了固定的相机轨迹，并在 Factory 场景下测试了两种不同的换页策略。性能测试结果如\autoref{tab:swap page}所示。表中的命中概率表示当前帧需要加载的数据页已经在页表中的概率；页表耗时表示每帧更新和维护页表所需的时间；绑定耗时则指每帧执行稀疏资源绑定操作的时间。
 
 \begin{table}[!htb]
     \caption{\label{tab:swap page}不同换页策略的性能比较}
@@ -353,29 +390,202 @@ K-D 树的构建时间复杂度为 $O(N\log N)$，
     \end{tabularx}
 \end{table}
 
-可以看出，两种换页策略的性能相差无几。本项目在后续测试中都采用性能略优的LRU策略。
+从表格数据可以看出，随机替换和 LRU 策略在命中概率上基本相同，性能差异主要体现在页表和绑定耗时上。LRU策略在页表维护和绑定过程中的耗时稍低，因此在后续测试中我们选择了性能更优的 LRU 策略。
 
-与此同时，本项目在固定页表总容量的前提下，改变数据页的大小，测量最佳的数据页大小。
+此外，本项目还对数据页的大小进行了测试，以确定最佳的页大小。在固定页表总容量的前提下，测试了不同数据页大小的性能，结果如\autoref{fig:page size}所示。
 
-\begin{table}[!htb]
-    \caption{\label{tab:swap page}不同换页策略的性能比较}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|}
-        \hline
-        换页策略 & 命中概率 & 页表耗时 \\ \hline
-        1024KB & 99.1\% & 1.98ms \\ \hline
-        512KB & 99.1\% & 1.98ms \\ \hline
-    \end{tabularx}
-\end{table}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{PageSize.png}
+    \caption{\label{fig:page size}不同数据页大小对性能的影响}
+\end{figure}
 
-可以测试LRU、随机两种不同方法的time、换入换出次数等
-还可以测试Page Size大小的影响
-
-综上可以看出，页表部分并不是程序运行的性能瓶颈，这一部分将不再作为后续研究的重点。
+从测试结果可以看出，随着数据页大小的增大，命中概率逐渐提高，同时页表和绑定操作的耗时显著减少。当数据页大小过小时，由于页表容量保持不变，数据页数量较大，导致页表管理的开销上升，进而显著降低了页表的处理速度，同时稀疏绑定所消耗的时间也大幅增加。当数据页大小增大到 4096KB 时，由于页表容量有限，显存利用率下降，页表的压力加大，系统不得不采用更为激进的 LOD 选择策略，这导致了画面质量的明显下降。因此，综合考虑性能和显存利用率，本项目最终选择了 2048KB 作为最优的数据页大小。
 
 \section{项目成果}
 
+\subsection{最终实验结果及分析}
 
+本项目分别对 Sponza、Factory 两个场景进行了最终测试。两个场景的具体参数如\autoref{tab:scene}所示
+
+\begin{table}[!htb]
+    \caption{\label{tab:scene}测试场景信息}
+    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|}
+        \hline
+        场景 & 顶点数 & 三角形数 \\ \hline
+        Sponza & 190,448 & 262,241 \\ \hline
+        Factory & 140,875,512 & 46,958,504 \\ \hline
+    \end{tabularx}
+\end{table}
+
+在测试过程中，分别在开启和不开启 LOD 及流式加载的情况下~\cite{zjuthesis}，测量了预处理时间、显存占用、渲染帧时间等关键性能指标。测试结果如\autoref{tab:Sponza data}和\autoref{tab:Factory data}所示。
+
+\begin{table}[htb]
+    \caption{\label{tab:Sponza data}Sponza 场景运行参数}
+    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+        \hline
+        ~ & 预处理时间 & 显存占用 & GPU 时间 & 渲染帧时间 \\ \hline
+        不开启 LOD 和流式加载 & 0.2s & 8.0MB & 0.8ms & 1.0ms \\ \hline
+        开启 LOD 和流式加载 & 1.8s & 34.5MB & 0.9ms & 1.0ms \\ \hline
+    \end{tabularx}
+\end{table}
+
+\begin{figure*}[htb]
+    \centering
+    % 第一列（远景）
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=2.9in]{Sponza0.png}
+        \caption{不开启 LOD 和流式加载}
+    \end{subfigure}%
+    \hfill % 确保子图之间有空隙
+    % 第二列（中景）
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=2.9in]{Sponza1.png}
+        \caption{开启 LOD 和流式加载}
+    \end{subfigure}%
+    \caption{Sponza 场景运行效果对比图}
+    \vspace{-0.2cm}
+    \label{fig:Sponza fig}
+\end{figure*}
+
+\begin{table}[htb]
+    \caption{\label{tab:Factory data}Factory 场景运行参数}
+    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+        \hline
+        ~ & 预处理时间 & 显存占用 & GPU 时间 & 渲染帧时间 \\ \hline
+        不开启 LOD 和流式加载 & 61s & 5.2GB & 230.3ms & 231.9ms \\ \hline
+        开启 LOD 和流式加载 & 1480s & 5.1GB & 38.2ms & 38.5ms \\ \hline
+    \end{tabularx}
+\end{table}
+
+\begin{figure*}[h]
+    \centering
+    % 第一列（远景）
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=2.9in]{Factory0.jpg}
+        \caption{不开启 LOD 和流式加载}
+    \end{subfigure}%
+    \hfill % 确保子图之间有空隙
+    % 第二列（中景）
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=2.9in]{Factory1.jpg}
+        \caption{开启 LOD 和流式加载}
+    \end{subfigure}%
+    \caption{Sponza 场景运行效果对比图}
+    \vspace{-0.2cm}
+    \label{fig:Sponza fig}
+\end{figure*}
+
+从实验结果来看，对于简单场景（如 Sponza），LOD 与流式加载带来的性能收益较为有限；而在复杂工业场景（如 Factory）中，这些优化措施显著提升了渲染性能。帧率从不足 5FPS 提升至约 25FPS，实现了接近 5 倍的加速，基本满足实时交互需求。同时可见，开启流式加载后 GPU 时间与整体帧时间相近，说明虽然存在 CPU 与 GPU 之间的数据交互，但并未造成明显的 CPU 负担，系统整体处于良好的负载均衡状态。
+
+不过，优化效果仍存在一些问题。如\autoref{fig:Sponza fig}所示，开启 LOD 后画面出现明显走样，初步分析是由于 LOD 生成过程中顶点合并导致法向量精度下降，从而引起光照计算偏差。后续需进一步改进法向量处理策略，以提升画面质量。
+
+\subsection{工作总结}
+
+综上所述，本项目在深入理解 Nanite 核心思想的基础上，利用 Vulkan 这一先进图形 API，结合现有引擎架构，成功实现了基于簇的 GPU 驱动渲染管线。通过集成 LOD（细节层次）管理和流式加载模块，我们能够高效地导入和实时渲染复杂的工业场景，尤其是在处理大于显存容量的场景时，通过流式加载和智能的资源管理，能够在有限显存的情况下顺利进行渲染。在 LOD 技术的支持下，项目能够根据物体与视角的距离动态调整细节层次，确保在一定的渲染质量下提升性能。与传统渲染管线相比，渲染性能有了显著的提升，约为 5 倍左右。这使得本项目在大规模、精度要求较高的工业场景渲染中，能够提供更好的实时渲染效果。
+
+总体而言，本项目为大规模工业数据的实时可视化提供了有效的技术支持，也为未来在此领域的进一步研究和应用奠定了基础。
+
+\subsection{未来展望}
+
+本项目当前尽管在大规模工业场景的实时渲染方面取得了一定进展，但仍存在许多不足，距离实际应用尚有一定的距离。后续可以开展的工作包括：
+
+\begin{itemize}
+    \item 增加阴影支持：目前渲染管线未实现阴影效果。可以参考虚幻引擎中的虚拟阴影贴图（Virtual Shadow Map，VSM）方案，引入高效的实时阴影算法，提升渲染真实感。
+
+    \item 实现高效的遮挡剔除：当前管线缺乏高效的遮挡剔除（Occlusion Culling）机制。未来可引入遮挡查询技术（如基于视锥体剔除或 GPU 加速的遮挡测试）来减少不必要的渲染工作，进一步提高性能。
+
+    \item 多材质系统的支持：当前渲染管线尚未支持多材质系统。未来可以通过实现延迟渲染材质（Deferred Material）来支持多个材质的同时渲染，从而提升复杂场景的渲染效果和效率。
+
+    \item 场景数据编码与解码优化：通过对场景数据进行高效编码并在 GPU 上解码，可以显著降低显存和主内存占用。同时，数据压缩与编码还能够减少磁盘空间的使用，提高场景数据的加载速度。这将优化显存、内存和存储的资源管理，提升渲染性能和系统响应速度。
+\end{itemize}
+
+通过这些改进，项目可以进一步提升在工业级大规模场景中的渲染效率和视觉效果，为更广泛的应用场景打下坚实的基础。
 
 \section{Overleaf 使用注意事项}
 
 如果你在Overleaf上编译本模板，请注意如下事项~\cite{zjuthesis}：
+
+\begin{itemize}
+    \item 删除根目录的 ``.latexmkrc'' 文件，否则编译失败且不报任何错误
+    \item 字体有版权所以本模板不能附带字体，请务必手动上传字体文件，并在各个专业模板下手动指定字体。
+        具体方法参照 GitHub 主页的说明。
+    \item 当前（2019年9月2日）的Overleaf使用TexLive 2017进行编译，但一些伪粗体复制乱码的问题需要TexLive 2019版本来解决。
+        所以各位同学可以在Overleaf上编写论文，但务必使用本地的TexLive 2019来进行最终编译，以免产生查重相关问题。
+        具体说明参照 GitHub 主页。
+\end{itemize}
+
+\subsection{节标题}
+
+\subsubsection{小节标题}
+
+\par 我们可以用includegraphics来插入现有的jpg等格式的图片，如\autoref{fig:zju-logo}。
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=.4\linewidth]{logo/zju}
+    \caption{\label{fig:zju-logo}浙江大学LOGO}
+\end{figure}
+
+\par 如\autoref{tab:sample}所示，这是一张自动调节列宽的表格。
+
+\begin{table}[ht]
+    \caption{\label{tab:sample}自动调节列宽的表格}
+    \begin{tabularx}{\linewidth}{|c|X<{\centering}|}
+        \hline
+        第一列 & 第二列 \\ \hline
+        xxx & xxx \\ \hline
+        xxx & xxx \\ \hline
+        xxx & xxx \\ \hline
+    \end{tabularx}
+\end{table}
+
+\par 如\autoref{equ:sample}，这是一个公式
+
+\begin{equation}
+    \label{equ:sample}
+    A=\overbrace{(a+b+c)+\underbrace{i(d+e+f)}_{\text{虚数}}}^{\text{复数}}
+\end{equation}
+
+\par 如\autoref{code:sample}所示，这是一段代码。
+计算机学院的代码样式可能与其他专业不同，
+如有需要，可以从计算机学院专业模板中复制相关的代码样式设定。
+
+\begin{lstlisting}[%
+    language={C},
+    caption={simple.c},
+    label={code:sample}
+]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+    printf("Hello, zjuthesis\n");
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{关于字体}
+
+英文字体通常提供了粗体和斜体的组合，中文字体通常没有粗体或斜体，本模板使用了 `AutoFakeBold' 来实现中文伪粗体，但不提供中文斜体，如\autoref{tab:font-examples}所示。
+
+\begin{table}
+    \centering
+    \caption{一些字体示例}
+    \label{tab:font-examples}
+    \begin{tabular}{|c|c|c|c|c|}
+        \hline
+        字体            & 常规             & 粗体                       & 斜体                      & 粗斜体                                \\ \hline
+        Times New Roman & Regular         & {\bfseries          Bold} & {\itshape         Italic} & {\bfseries \itshape      BoldItalic} \\ \hline
+        仿宋            & {\fangsong 常规} & {\fangsong \bfseries 粗体} & {\fangsong \itshape 斜体} & {\fangsong \bfseries \itshape 粗斜体} \\ \hline
+        宋体            & {\songti   常规} & {\songti   \bfseries 粗体} & {\songti   \itshape 斜体} & {\songti   \bfseries \itshape 粗斜体} \\ \hline
+        黑体            & {\heiti    常规} & {\heiti    \bfseries 粗体} & {\heiti    \itshape 斜体} & {\heiti    \bfseries \itshape 粗斜体} \\ \hline
+        楷体            & {\kaishu   常规} & {\kaishu   \bfseries 粗体} & {\kaishu   \itshape 斜体} & {\kaishu   \bfseries \itshape 粗斜体} \\ \hline
+    \end{tabular}
+\end{table}
+
+\sectionnonum[none]{同一页上的章标题}
