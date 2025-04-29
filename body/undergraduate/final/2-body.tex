@@ -40,44 +40,19 @@
     \caption{\label{fig:流程}项目流程图}
 \end{figure}
 
-\par 综上所述，本项目在原有引擎渲染管线基础上，  
-主要负责对几何模块进行修改，新增流式加载模块，并在预处理阶段  
-实现了模型划分簇与生成 LOD 的功能。
-通过这些改进，原渲染管线的性能得到了显著优化，  
-帧率明显提升，显存占用有所降低，同时保持了良好的画面保真度。
+\par 综上所述，本项目在原有引擎渲染管线基础上，主要负责对几何模块进行修改，新增流式加载模块，并在预处理阶段实现了模型划分簇与生成 LOD 的功能。通过这些改进，原渲染管线的性能得到了显著优化，帧率明显提升，显存占用有所降低，同时保持了良好的画面保真度。
 
 \section{基于簇的 GPU 驱动渲染管线}
 
 \subsection{引言}
 
-GPU 驱动的渲染管线是一种通过 GPU 完成大部分渲染任务的渲染架构，
-与传统的 CPU 驱动渲染管线相比，
-GPU 驱动渲染管线能够显著提高渲染效率，
-尤其在处理复杂或大规模场景时。
-其核心思想是将大量渲染计算和数据处理任务交给 GPU 执行，
-充分利用 GPU 强大的并行计算能力，从而加速渲染过程。
+GPU 驱动的渲染管线是一种通过 GPU 完成大部分渲染任务的渲染架构，与传统的 CPU 驱动渲染管线相比，GPU 驱动渲染管线能够显著提高渲染效率，尤其在处理复杂或大规模场景时。其核心思想是将大量渲染计算和数据处理任务交给 GPU 执行，充分利用 GPU 强大的并行计算能力，从而加速渲染过程。
 
-在传统的 CPU 驱动渲染管线中，
-CPU 通常承担着场景遍历、物体剔除、LOD 管理等任务，
-而 GPU 主要负责图形的绘制和光照计算等工作。
-然而，随着图形渲染需求的提升，
-CPU 驱动渲染管线的性能瓶颈逐渐显现，
-特别是在处理大规模场景时，
-CPU 的计算负担较重，出现渲染性能下降等问题。
+在传统的 CPU 驱动渲染管线中，CPU 通常承担着场景遍历、物体剔除、LOD 管理等任务，而 GPU 主要负责图形的绘制和光照计算等工作。然而，随着图形渲染需求的提升，CPU 驱动渲染管线的性能瓶颈逐渐显现，特别是在处理大规模场景时，CPU 的计算负担较重，出现渲染性能下降等问题。
 
-而在 GPU 驱动的渲染管线中，
-许多原本由 CPU 执行的任务（如剔除计算、LOD 选择等）
-都转移到 GPU 上，这样可以减少 CPU 的负担，
-使得 GPU 能够在更高效的并行计算模式下进行工作。
+而在 GPU 驱动的渲染管线中，许多原本由 CPU 执行的任务（如剔除计算、LOD 选择等）都转移到 GPU 上，这样可以减少 CPU 的负担，使得 GPU 能够在更高效的并行计算模式下进行工作。
 
-本项目除了流式加载模块中涉及到 CPU 与 GPU 之间的通信外，
-其余操作均在 GPU 上实现。
-与此同时，本项目引入了任务着色器（Task Shader）
-和网格着色器（Mesh Shader）组成的新型渲染管线，
-代替了传统的计算着色器（Compute Shader）、顶点着色器
-（Vertex Shader）和几何着色器（Geometry Shader）的组合。
-通过将渲染单元组织为簇（Meshlet）并以簇为单位进行处理，
-进一步提升了渲染性能和灵活性。
+本项目除了流式加载模块中涉及到 CPU 与 GPU 之间的通信外，其余操作均在 GPU 上实现。与此同时，本项目引入了任务着色器（Task Shader）和网格着色器（Mesh Shader）组成的新型渲染管线，代替了传统的计算着色器（Compute Shader）、顶点着色器（Vertex Shader）和几何着色器（Geometry Shader）的组合。通过将渲染单元组织为簇（Meshlet）并以簇为单位进行处理，进一步提升了渲染性能和灵活性。
 
 \subsection{基于簇的渲染}
 
@@ -475,14 +450,14 @@ K-D 树的构建时间复杂度为 $O(N\log N)$，
         \includegraphics[width=2.9in]{Factory1.jpg}
         \caption{开启 LOD 和流式加载}
     \end{subfigure}%
-    \caption{Sponza 场景运行效果对比图}
+    \caption{Factory 场景运行效果对比图}
     \vspace{-0.2cm}
-    \label{fig:Sponza fig}
+    \label{fig:Factory fig}
 \end{figure*}
 
 从实验结果来看，对于简单场景（如 Sponza），LOD 与流式加载带来的性能收益较为有限；而在复杂工业场景（如 Factory）中，这些优化措施显著提升了渲染性能。帧率从不足 5FPS 提升至约 25FPS，实现了接近 5 倍的加速，基本满足实时交互需求。同时可见，开启流式加载后 GPU 时间与整体帧时间相近，说明虽然存在 CPU 与 GPU 之间的数据交互，但并未造成明显的 CPU 负担，系统整体处于良好的负载均衡状态。
 
-不过，优化效果仍存在一些问题。如\autoref{fig:Sponza fig}所示，开启 LOD 后画面出现明显走样，初步分析是由于 LOD 生成过程中顶点合并导致法向量精度下降，从而引起光照计算偏差。后续需进一步改进法向量处理策略，以提升画面质量。
+不过，优化效果仍存在一些问题。如\autoref{fig:Factory fig}所示，开启 LOD 后画面出现明显走样，初步分析是由于 LOD 生成过程中顶点合并导致法向量精度下降，从而引起光照计算偏差。后续需进一步改进法向量处理策略，以提升画面质量。
 
 \subsection{工作总结}
 
@@ -505,87 +480,3 @@ K-D 树的构建时间复杂度为 $O(N\log N)$，
 \end{itemize}
 
 通过这些改进，项目可以进一步提升在工业级大规模场景中的渲染效率和视觉效果，为更广泛的应用场景打下坚实的基础。
-
-\section{Overleaf 使用注意事项}
-
-如果你在Overleaf上编译本模板，请注意如下事项~\cite{zjuthesis}：
-
-\begin{itemize}
-    \item 删除根目录的 ``.latexmkrc'' 文件，否则编译失败且不报任何错误
-    \item 字体有版权所以本模板不能附带字体，请务必手动上传字体文件，并在各个专业模板下手动指定字体。
-        具体方法参照 GitHub 主页的说明。
-    \item 当前（2019年9月2日）的Overleaf使用TexLive 2017进行编译，但一些伪粗体复制乱码的问题需要TexLive 2019版本来解决。
-        所以各位同学可以在Overleaf上编写论文，但务必使用本地的TexLive 2019来进行最终编译，以免产生查重相关问题。
-        具体说明参照 GitHub 主页。
-\end{itemize}
-
-\subsection{节标题}
-
-\subsubsection{小节标题}
-
-\par 我们可以用includegraphics来插入现有的jpg等格式的图片，如\autoref{fig:zju-logo}。
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=.4\linewidth]{logo/zju}
-    \caption{\label{fig:zju-logo}浙江大学LOGO}
-\end{figure}
-
-\par 如\autoref{tab:sample}所示，这是一张自动调节列宽的表格。
-
-\begin{table}[ht]
-    \caption{\label{tab:sample}自动调节列宽的表格}
-    \begin{tabularx}{\linewidth}{|c|X<{\centering}|}
-        \hline
-        第一列 & 第二列 \\ \hline
-        xxx & xxx \\ \hline
-        xxx & xxx \\ \hline
-        xxx & xxx \\ \hline
-    \end{tabularx}
-\end{table}
-
-\par 如\autoref{equ:sample}，这是一个公式
-
-\begin{equation}
-    \label{equ:sample}
-    A=\overbrace{(a+b+c)+\underbrace{i(d+e+f)}_{\text{虚数}}}^{\text{复数}}
-\end{equation}
-
-\par 如\autoref{code:sample}所示，这是一段代码。
-计算机学院的代码样式可能与其他专业不同，
-如有需要，可以从计算机学院专业模板中复制相关的代码样式设定。
-
-\begin{lstlisting}[%
-    language={C},
-    caption={simple.c},
-    label={code:sample}
-]
-#include <stdio.h>
-
-int main(int argc, char *argv[])
-{
-    printf("Hello, zjuthesis\n");
-    return 0;
-}
-\end{lstlisting}
-
-\subsection{关于字体}
-
-英文字体通常提供了粗体和斜体的组合，中文字体通常没有粗体或斜体，本模板使用了 `AutoFakeBold' 来实现中文伪粗体，但不提供中文斜体，如\autoref{tab:font-examples}所示。
-
-\begin{table}
-    \centering
-    \caption{一些字体示例}
-    \label{tab:font-examples}
-    \begin{tabular}{|c|c|c|c|c|}
-        \hline
-        字体            & 常规             & 粗体                       & 斜体                      & 粗斜体                                \\ \hline
-        Times New Roman & Regular         & {\bfseries          Bold} & {\itshape         Italic} & {\bfseries \itshape      BoldItalic} \\ \hline
-        仿宋            & {\fangsong 常规} & {\fangsong \bfseries 粗体} & {\fangsong \itshape 斜体} & {\fangsong \bfseries \itshape 粗斜体} \\ \hline
-        宋体            & {\songti   常规} & {\songti   \bfseries 粗体} & {\songti   \itshape 斜体} & {\songti   \bfseries \itshape 粗斜体} \\ \hline
-        黑体            & {\heiti    常规} & {\heiti    \bfseries 粗体} & {\heiti    \itshape 斜体} & {\heiti    \bfseries \itshape 粗斜体} \\ \hline
-        楷体            & {\kaishu   常规} & {\kaishu   \bfseries 粗体} & {\kaishu   \itshape 斜体} & {\kaishu   \bfseries \itshape 粗斜体} \\ \hline
-    \end{tabular}
-\end{table}
-
-\sectionnonum[none]{同一页上的章标题}
