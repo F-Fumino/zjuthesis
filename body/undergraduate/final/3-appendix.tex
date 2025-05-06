@@ -5,24 +5,57 @@
 
     \appendixsubsecmajornumbering
 
-    \subsection{一个附录}
+    \subsection{Vulkan 中的稀疏资源}
+    \label{appendix:sparse}
 
-    \begin{figure}[htb]
+    Vulkan 提供了对稀疏资源的原生支持，允许开发者以页为单位动态地管理资源与显存之间的绑定关系。这一机制类似于虚拟内存系统，能够在不占用完整显存的前提下处理大规模资源，广泛应用于虚拟纹理、虚拟几何等场景中。
+
+    相比于传统资源绑定方式（即非稀疏资源必须一次性绑定整个显存块），稀疏资源大大提高了资源调度的灵活性，并为流式加载等高级技术提供了支持。
+
+    \subsubsection{Vulkan 中的缓冲区类型}
+
+    \begin{figure}[htbp]
         \centering
-        \includegraphics{example-image}
-        \caption{附录中的图片}
-        \label{fig:test-appendix}
+        \includegraphics[width=\linewidth]{sparse.png}
+        \caption{\label{fig:sparse}Vulkan 中不同缓冲区类型的内存绑定方式}
     \end{figure}
+    
+    如\autoref{fig:sparse}所示，Vulkan 提供了多种缓冲区类型，支持不同形式的稀疏资源管理。根据是否支持稀疏绑定（sparse binding）和稀疏驻留（sparse residency），主要包括以下四类：
 
-    \begin{equation}
-        E=mc^2
-    \end{equation}
+    \begin{itemize}
+        \item \textbf{Non-sparse Buffer}：默认的缓冲区类型，需在创建后一次性绑定整个显存区域，绑定后不可更改。其简单但缺乏灵活性，无法满足动态资源调度的需求。
+        
+        \item \textbf{Sparse Binding Buffer}：支持以页为单位绑定显存块，允许在运行时修改缓冲区和显存之间的映射关系。但所有被访问的区域必须已经完成绑定，否则行为未定义。
+        
+        \item \textbf{Sparse Residency Buffer}：在 Sparse Binding Buffer 的基础上引入了驻留管理机制。允许部分区域未绑定显存，如果访问了未绑定的区域，系统将返回默认值而不会产生非法访问。这类缓冲区非常适合按需加载，支持更大规模的数据组织。
+        
+        \item \textbf{Sparse Residency Aliased Buffer}：在 Sparse Residency Buffer 的基础上进一步允许多个资源共享同一组显存页，适合需要显存复用的高级应用场景，但需要开发者额外管理资源之间的别名冲突，使用复杂。
+    \end{itemize}
 
-    \subsection{另一个附录}
+    \subsubsection{本项目的选择与理由}
+    本项目采用了 Sparse Residency Buffer 来存储大规模工业场景中的几何数据，其主要优势包括：
 
-    \begin{equation}
-        x^n + y^n = z^n
-    \end{equation}
+    \begin{itemize}
+        \item \textbf{无需整块分配显存}：支持细粒度的内存控制，避免了为稀疏访问的区域分配完整显存，特别适用于大规模超出 GPU 显存容量的工业 CAD 场景。
+
+        \item \textbf{支持按需加载}：缓冲区可以划分为若干页，仅在需要渲染对应数据时才绑定对应页的显存，减少了不必要的显存占用；
+
+        \item \textbf{支持动态换绑}：允许在运行时重新绑定页面，便于结合页表机制实现灵活的加载与换页策略；
+        
+        \item \textbf{访问未绑定区域安全}：当部分区域尚未加载时，GPU 访问这些区域也不会触发非法访问，仅返回默认值，这为动态加载和渐进式显示提供了容错能力。
+    \end{itemize}
+
+    综上所述，Sparse Residency Buffer 在灵活性与鲁棒性之间达到了较好的平衡，是本项目实现高效流式加载和显存管理的关键基础设施。
+
+    \subsection{源代码清单}
+
+    本项目的全部源代码已托管于 GitHub 开源仓库中，地址如下：
+
+    \begin{itemize}
+    \item \url{https://github.com/F-Fumino/Xihe}
+    \end{itemize}
+
+    该仓库包含渲染引擎的完整实现，包括基于任务着色器的簇剔除流程、流式加载调度机制、LOD 管理等模块。访问时间为 2025 年 5 月。
 
     % End of appendix
     \removeappendixsubsecmajornumbering
