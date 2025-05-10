@@ -6,11 +6,11 @@
     \bfseries \zihao{3} 摘~~~~要（中文）
 \end{center}
 
-随着工业领域对高精度、大规模模型可视化需求的不断增长，传统的 CPU 驱动渲染管线在性能和资源管理方面逐渐暴露出瓶颈，难以满足复杂工业场景的导入和实时渲染需求。为应对这一挑战，本文借鉴 Nanite 的核心思想，设计并实现了一套基于 Vulkan 的 GPU 驱动渲染管线。该管线采用基于簇的渲染架构，集成了 LOD 与流式加载机制，初步实现了大规模工业场景的高效处理与实时渲染。
+随着工业领域对高精度、大规模模型可视化需求的不断增长，传统渲染管线在性能和资源管理方面逐渐暴露出瓶颈，难以满足复杂工业场景的导入和实时渲染需求。为应对这一挑战，本文借鉴 Nanite 的核心思想，设计并实现了一套基于 Vulkan 的 GPU 驱动渲染管线。该管线采用基于簇的渲染架构，集成了 LOD 与流式加载机制，初步实现了大规模工业场景的高效处理与实时渲染。
 
-通过稀疏资源支持的流式加载机制，本项目显著降低了显存压力，拥有导入超出显存空间场景的潜力。在渲染效率方面，相比传统的 CPU 驱动渲染管线，本项目的帧率提升了约 5 倍，尤其在几何复杂度较高的场景中表现出更优的性能。
+通过稀疏资源支持的流式加载机制，本项目显著降低了显存压力，拥有导入超出显存空间场景的潜力。结合先进的 LOD 技术，相比传统渲染管线，本项目的帧率提升了约 5 倍，尤其在几何复杂度较高的场景中表现出更优的性能。
 
-综上，本文设计的渲染管线在智能制造、建筑仿真、航空航天等工业领域中具备良好的扩展潜力。
+综上，本文设计的渲染管线在智能制造、建筑仿真、航空航天等工业领域中具备良好的扩展潜力和实用前景。
 
 \vspace{1em}
 
@@ -24,11 +24,11 @@
     \bfseries \zihao{3} Abstract~（英文）
 \end{center}
 
-With the growing demand for high-precision and large-scale model visualization in industrial applications, making them insufficient for importing and rendering complex industrial scenes in real time. To address this challenge, this work draws inspiration from the core concepts of Nanite and presents a Vulkan-based GPU-driven rendering pipeline. The pipeline adopts a cluster-based rendering architecture, integrating LOD techniques and a streaming mechanism, and initially achieves efficient processing and real-time rendering of large-scale industrial scenes.
+With the growing demand for high-precision and large-scale model visualization in industrial applications, traditional rendering pipelines are increasingly revealing bottlenecks in both performance and resource management, making it difficult to handle the import and real-time rendering of complex industrial scenes. To address this challenge, this work draws inspiration from the core concepts of Nanite and presents a GPU-driven rendering pipeline based on Vulkan. The pipeline adopts a cluster-based rendering architecture, integrating LOD techniques and streaming mechanisms, and initially achieves efficient processing and real-time rendering of large-scale industrial scenes.
 
-Based on Vulkan sparse resources, the project enables an efficient streaming system that alleviates memory pressure and demonstrates the potential to handle scenes that exceed available GPU memory. In terms of rendering performance, the pipeline delivers approximately a 5× improvement in frame rate compared to traditional CPU-driven pipelines, especially in scenes with high geometric complexity.
+Based on Vulkan's sparse resources, our project enables an efficient streaming system that alleviates memory pressure and demonstrates the potential to handle scenes that exceed available GPU memory. In combination with advanced LOD techniques, the pipeline delivers approximately a 5× improvement in frame rate compared to traditional pipelines, particularly excelling in scenes with high geometric complexity.
 
-In conclusion, the proposed rendering pipeline shows strong scalability for industrial applications such as smart manufacturing, architectural simulation, and aerospace visualization.
+In conclusion, the proposed rendering pipeline shows strong scalability and practical prospects for industrial applications such as smart manufacturing, architectural simulation, and aerospace visualization.
 
 \vspace{1em}
 
