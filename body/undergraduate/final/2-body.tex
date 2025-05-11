@@ -92,7 +92,9 @@ GPU 驱动的渲染管线是一种由 GPU 完成大部分渲染任务的渲染�
 
 \begin{table}[H]
     \caption{\label{tab:culling}不同剔除策略下的渲染性能测试结果}
-    \begin{tabularx}{\linewidth}{|c|X<{\centering}|c|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         剔除策略 & GPU 在裁剪阶段丢弃的图元数 & 帧时间 \\ \hline
         不使用剔除 & 40713.9k & 240.7ms \\ \hline
@@ -199,7 +201,9 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 \begin{table}[H]
     \caption{\label{tab:LOD}各级 LOD 对应的顶点数、三角形数和簇数}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{0.8\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         LOD级别 & 顶点数 & 三角数 & 簇数 \\ \hline
         LOD 0 & 5032 & 7128 & 80 \\ \hline
@@ -314,7 +318,9 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 \begin{table}[H]
     \caption{\label{tab:swap page}不同换页策略的性能比较}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{0.9\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         换页策略 & 命中概率 & 页表耗时 & 绑定耗时 & 总耗时 \\ \hline
         随机替换 & 99.2\% & 2.86ms & 1.59ms & 4.45ms \\ \hline
@@ -342,7 +348,9 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 \begin{table}[H]
     \caption{\label{tab:scene}测试场景信息}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|c|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{0.9\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         场景 & 顶点数 & 三角形数 & 场景文件大小（.gltf）\\ \hline
         Sponza & 190,448 & 262,241 & 81.9 MB \\ \hline
@@ -354,11 +362,13 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 \begin{table}[H]
     \caption{\label{tab:Sponza data}Sponza 场景运行参数}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{\linewidth}{|c|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         ~ & 预处理时间 & 显存占用 & GPU 时间 & 帧时间 \\ \hline
-        不开启 LOD 和流式加载 & 0.2s & 8.0MB & 0.8ms & 1.0ms \\ \hline
-        开启 LOD 和流式加载 & 1.8s & 34.5MB & 0.9ms & 1.0ms \\ \hline
+        不开启 LOD 和流式加载 & 0.2s & 8.0 MB & 0.8ms & 1.0ms \\ \hline
+        开启 LOD 和流式加载 & 1.8s & 34.5 MB & 0.9ms & 1.0ms \\ \hline
     \end{tabularx}
 \end{table}
 
@@ -384,11 +394,13 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 \begin{table}[H]
     \caption{\label{tab:Factory data}Factory 场景运行参数}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{\linewidth}{|c|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         ~ & 预处理时间 & 显存占用 & GPU 时间 & 帧时间 \\ \hline
-        不开启 LOD 和流式加载 & 61s & 5.2GB & 230.3ms & 231.9ms \\ \hline
-        开启 LOD 和流式加载 & 1480s & 5.1GB & 38.2ms & 38.5ms \\ \hline
+        不开启 LOD 和流式加载 & 61s & 5.2 GB & 230.3ms & 231.9ms \\ \hline
+        开启 LOD 和流式加载 & 1480s & 5.1 GB & 38.2ms & 38.5ms \\ \hline
     \end{tabularx}
 \end{table}
 
