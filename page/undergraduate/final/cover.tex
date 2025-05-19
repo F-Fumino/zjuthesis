@@ -28,7 +28,7 @@
     \includegraphics[width=0.17\paperwidth]{logo/zju.pdf}
 \end{center}
 
-\vskip 20pt
+% \vskip 20pt
 
 % Define multi line title
 \ifthenelse{\equal{\TitleLines}{1}}
@@ -42,8 +42,7 @@
 {
     % TitleLines == 2
     \newcommand{\CoverTitle}{
-        题目      &  \uline{\hfill \TitleLineOne{} \hfill} \\
-        ~        & \uline{\hfill \TitleLineTwo{} \hfill} \\
+        题目 & \parbox[t]{0.5\textwidth}{\uline{GPU驱动的复杂工业场景的\\高效处理与实时渲染~~~~~~~~~~~~~}} \\
     }
 }
 
