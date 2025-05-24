@@ -1,6 +1,66 @@
 \cleardoublepage
 
+\definecolor{codebg}{rgb}{0.97,0.97,0.97}
+\definecolor{codegreen}{rgb}{0,0.5,0}
+\definecolor{codegray}{rgb}{0.4,0.4,0.4}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{codered}{rgb}{0.8,0.1,0.1}
+\definecolor{codeblue}{rgb}{0.0,0.0,0.6}
+
+\lstdefinestyle{mystyle}{
+  language=C++,
+  backgroundcolor=\color{codebg},
+  basicstyle=\footnotesize\ttfamily,
+  commentstyle=\color{codegreen}\itshape,
+  keywordstyle=\color{codeblue}\bfseries,
+  stringstyle=\color{codepurple},
+  identifierstyle=\color{black},
+  morekeywords={uint32_t, int32_t, vec3, vec4, uint64_t, Function, If, Else, For, While, Return, True, False, Then, Do, End},
+  numberstyle=\scriptsize\color{codegray},
+  numbers=left,
+  numbersep=8pt,
+  tabsize=4,
+  frame=single,
+  rulecolor=\color{gray},
+  captionpos=b,
+  breaklines=true,
+  breakatwhitespace=false,
+  showstringspaces=false,
+  showspaces=false,
+  showtabs=false,
+  keepspaces=true,
+  xleftmargin=2em,
+  xrightmargin=1em,
+}
+
+% \lstdefinelanguage{pseudocode}{
+%     morekeywords={Input,Output,Function,If,Else,For,While,Return,True,False,Then,Do,End},
+%     sensitive=false,
+%     morecomment=[l]{//},
+%     morestring=[b]",
+% }
+
+% \lstdefinestyle{pseudostyle}{
+%     language=pseudocode,
+%     backgroundcolor=\color{gray!5},
+%     basicstyle=\ttfamily\small,
+%     keywordstyle=\color{blue}\bfseries,
+%     commentstyle=\color{gray}\itshape,
+%     stringstyle=\color{orange},
+%     frame=single,
+%     breaklines=true,
+%     showstringspaces=false,
+%     columns=flexible,
+%     xleftmargin=2em,
+%     xrightmargin=1em,
+%     captionpos=b,
+%     numbers=left,
+%     numberstyle=\tiny\color{gray},
+% }
+
 \section{项目实施方案}
+
+本章将对项目的关键需求进行系统性的分析，并在此基础上提出初步的实施方案。通过明确功能目标与技术需求，构建出适用于本项目的整体架构，为后续的模块开发与系统实现奠定基础。
 
 \subsection{软件需求分析}
 
@@ -36,7 +96,9 @@
 
 GPU 驱动的渲染管线是一种由 GPU 完成大部分渲染任务的渲染架构，与传统的 CPU 驱动渲染管线相比，GPU 驱动渲染管线能够显著提高渲染效率，尤其在处理复杂大规模场景时。其核心思想是将大量渲染计算和数据处理任务交给 GPU 执行，充分利用 GPU 强大的并行计算能力，从而加速渲染过程。
 
-本项目除了流式加载模块中涉及到 CPU 与 GPU 之间的通信外，其余渲染过程均在 GPU 上实现。与此同时，本项目引入了由任务着色器和网格着色器组成的新型渲染管线，代替了传统的计算着色器（Compute Shader）、顶点着色器（Vertex Shader）和几何着色器（Geometry Shader）的组合。网格着色器提出了“簇”这一新概念，通过将三角形组织为簇，显著提高了 GPU 批处理的性能\cite{Czubala2024}\cite{Santerre2020}。
+本项目除了流式加载模块中涉及到 CPU 与 GPU 之间的通信外，其余渲染过程均在 GPU 上实现。与此同时，本项目引入了由任务着色器和网格着色器组成的新型渲染管线，代替了传统的计算着色器（Compute Shader）、顶点着色器（Vertex Shader）和几何着色器（Geometry Shader）的组合。
+
+这种新型渲染管线引入了“簇”这一新概念，通过将三角形组织为簇，显著提高了 GPU 批处理的性能\cite{Czubala2024}。其中，任务着色器负责每个簇的调度与准备工作，通常包括剔除和 LOD 选择等操作，用于决定哪些簇需要进入后续渲染阶段，并将这些簇的信息提交给网格着色器；而网格着色器则负责对通过测试的簇进行组装，读取每个簇的顶点和索引并输出为渲染图元，用于后续的光栅化阶段。
 
 \subsection{基于簇的渲染}
 
@@ -48,15 +110,99 @@ GPU 驱动的渲染管线是一种由 GPU 完成大部分渲染任务的渲染�
 
 将模型划分成簇是预处理阶段的关键步骤之一，本项目使用了第三方库 MeshOptimizer 来实现这一过程\cite{meshoptimizer}。MeshOptimizer 是一个高效的网格优化库，提供了各种优化算法，可以有效地对网格进行简化和划分，从而提高 GPU 渲染的性能。
 
-在具体实践中，本项目规定每个簇最多由 64 个顶点 和 124 个三角形组成。这样的划分方式有助于平衡簇的大小和渲染效率\cite{Kubisch2018}。
+在具体实践中，本项目规定每个簇最多由 64 个顶点和 126 个三角形组成。
+
+将每个簇的顶点数量限制为 64，主要是为了契合当前主流 GPU（如 NVIDIA 和 AMD）的并行计算架构。这些硬件通常以 32 或 64 个线程为一个执行单位（warp 或 wavefront）。将每个簇限制为不超过 64 个顶点，可以使一个工作组在任务着色器或网格着色器阶段以高度并行的方式处理每个簇的所有顶点，避免线程分支和资源浪费。
+
+将每个簇的三角形数量限制为 126 则是基于对底层显存分配策略的考虑。第一代支持网格着色器的 GPU 硬件以 128 字节为粒度分配图元索引，并且需要预留 4 字节用于存储图元数量。每个三角形由三个索引组成，索引通常为 1 字节。因此使用$ 3 \times 126 + 4 = 382 $字节，可以最大化地装入一个$ 3 \times 128 = 384 $字节的显存块中。若超过 126 个三角形，就会触发下一段 128 字节的分配，从而导致显存利用率下降\cite{Kubisch2018}。
+
+如\autoref{code:meshlet_code}所示，对于每个簇，本项目维护了以下属性信息，部分属性的具体用途将在后续章节中进一步展开说明。
+
+\begin{lstlisting}[
+   language={C++},
+   style=mystyle,
+   caption={簇的结构体定义},
+   breaklines=true, 
+   label={code:meshlet_code}
+]
+struct Cluster
+{
+    // 网格着色器中用于获取该簇的顶点和索引，见3.2.3节
+	uint32_t vertex_offset;   // 在顶点缓冲区中的偏移量
+	uint32_t triangle_offset; // 在索引缓冲区中的偏移量
+	uint32_t vertex_count;    // 顶点数
+	uint32_t triangle_count;  // 三角形数
+    // 用于剔除，见3.2.2节
+	vec4     bounding_sphere; // 包围球（xyz: 中心, w: 半径）
+	vec3     cone_axis;       // 圆锥主轴方向
+    float    cone_angle;      // 圆锥定角的余弦值
+    // 用于LOD选择，见4.3节
+    uint32_t lod;                    // LOD等级
+    float    cluster_error;          // 当前簇的误差值
+    float    parent_error;           // 父节点的误差值
+    vec4     parent_bounding_sphere; // 父节点的包围球
+    // 用于流式加载，见5.3节
+	uint32_t page_index; // 该簇所在的数据页编号
+};
+\end{lstlisting}
 
 \subsubsection{基于簇的剔除} \label{subsubsec:cluster culling}
 
 基于簇的剔除是在任务着色器中执行的，本项目目前实现的剔除算法包括视锥剔除（Frustum Culling）和圆锥剔除（Cone Culling）。
 
-其中，视锥剔除是判断模型是否在相机视野范围内的一种剔除方法。在预处理阶段，本项目提前计算了每个簇的包围球（Bounding Sphere），通过在运行时测试该包围球与视锥体（View Frustum）的关系，来判断该簇是否位于当前相机视野范围内。如果包围球完全在视锥体外，则该簇可以被剔除，避免不必要的渲染计算。
+其中，视锥剔除是判断模型是否在相机视野范围内的一种剔除方法。在预处理阶段，本项目提前计算了每个簇的包围球（Bounding Sphere）。通过在运行时测试该包围球与视锥体（View Frustum）的关系，判断当前簇是否可能出现在屏幕上。如\autoref{code:frustum_code}所示，当包围球完全位于某个视锥平面之外时，说明该簇不在当前视野内，可安全剔除。
 
-圆锥剔除则是将簇中所有顶点的法线方向表达为一个圆锥，依此进行可见性判断。具体而言，如果相机的视角方向与圆锥范围内所有法线方向的点积均为负数，则说明该簇完全背对相机，可以整体剔除，不需要渲染。在预处理阶段，本项目预计算了每个簇对应的圆锥信息，包括圆锥的顶点、主轴方向和定角等，这些信息可以直接用于运行时的剔除操作。
+\begin{lstlisting}[
+    style=mystyle,
+    caption={视锥剔除伪代码},
+    breaklines=true, 
+    label={code:frustum_code}
+]
+// 输入：
+//   center_view_space —— 包围球球心（视图空间）
+//   radius            —— 包围球半径
+// 返回：
+//   true  —— 球体完全在某个视锥面外（可剔除）
+//   false —— 球体位于视锥体内或与其相交（不可剔除）
+Function frustumCull(center_view_space, radius, frustum_planes)
+    // 遍历视锥体的六个面：左、右、上、下、近、远
+    For i from 0 to 5 Do
+        // frustum_planes[i] 是平面的一般式 (a, b, c, d)，点到平面距离为 dot(plane, vec4(p, 1.0))
+        If dot(frustum_planes[i], vec4(center_view_space, 1.0)) < -radius Then
+            Return True  // 可剔除
+        End
+    End
+    Return False  // 不可剔除
+End
+\end{lstlisting}
+
+圆锥剔除是一种基于法线方向的剔除技术，适用于表面具有一致法线分布的网格。由于组成簇的顶点和三角形数量较少，法线的分布具有良好的一致性，适合使用该算法进行剔除。
+
+在预处理阶段，本项目将每个簇用一个圆锥体近似表示。该圆锥体能够覆盖所有顶点的法线方向，并且方向一致。与此同时，本项目预计算了该圆锥的主轴方向$cone\_axis$以及定角的余弦值$cone\_angle$。
+
+在运行时，如果相机的观察方向与圆锥体的主轴方向夹角过大，即与簇的法向量分布完全无交集，就说明当前相机从背面观察该簇，该簇一定不可见，可以整体剔除。本项目已经预计算了圆锥的定角余弦值，接下来只需要计算观察方向与圆锥体主轴夹角的余弦值即可。剔除的条件如\autoref{equ:simple}所示。其中$center$为该簇包围球球心的世界坐标，$camera\_pos$为相机的世界坐标，$center - camera\_pos$即相机的观察方向。
+
+\begin{equation}
+    \label{equ:simple}
+    cone\_axis \cdot (center - camera\_pos) < cone\_angle \cdot \left\lVert center - camera\_pos \right\rVert
+\end{equation}
+
+需要注意的是，目前该条件仅能判断包围球球心是否落在圆锥之外，并不足以保证整个簇不可见。为提高剔除判断的保守性，本项目在判断条件中引入了包围球半径$r$，进一步拓宽了判断边界。最终用于运行时剔除的完整条件如\autoref{equ:final}所示。
+
+\begin{equation}
+    \label{equ:final}
+    cone\_axis \cdot (center - camera\_pos) < cone\_angle \cdot \left\lVert center - camera\_pos \right\rVert + r
+\end{equation}
+
+当上述不等式成立时，说明该包围球完全落在圆锥外部，整个簇可被安全剔除，以避免不必要的渲染开销。
+
+\subsubsection{网格着色器}
+
+网格着色器是基于簇的渲染工作流程中的关键组成部分。在这一阶段，经过任务着色器剔除后的簇将被并行处理。网格着色器对每个簇执行顶点变换、图元组装等操作，其功能相当于传统渲染管线中顶点着色器与几何着色器的组合，但在执行效率与并行性方面具有显著优势。
+
+具体而言，网格着色器能够以簇为最小处理单元，实现更大粒度的并行计算，显著降低管线调度开销。此外，网格着色器提供了更灵活的可编程能力与更高效的硬件执行路径，允许开发者自定义输出图元结构，并使用共享内存进行局部数据优化。这使得网格着色器在处理大规模高复杂度场景时，具有更好的扩展性与渲染性能\cite{Santerre2020}。
+
+经过网格着色器处理后，每个簇的顶点和索引信息将会被传递给片段着色器。片段着色器根据顶点的颜色、法线、纹理坐标等信息，计算每个像素的位置、法线和颜色等，用于后续的光照计算。
 
 \subsection{测试分析报告}
 
@@ -92,7 +238,9 @@ GPU 驱动的渲染管线是一种由 GPU 完成大部分渲染任务的渲染�
 
 \begin{table}[H]
     \caption{\label{tab:culling}不同剔除策略下的渲染性能测试结果}
-    \begin{tabularx}{\linewidth}{|c|X<{\centering}|c|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         剔除策略 & GPU 在裁剪阶段丢弃的图元数 & 帧时间 \\ \hline
         不使用剔除 & 40713.9k & 240.7ms \\ \hline
@@ -165,7 +313,7 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 %     \caption{\label{fig:LOD generation}各级 LOD 的生成效果图}
 % \end{figure}
 
-\begin{figure*}[h]
+\begin{figure*}[htbp]
     \centering
     % 第一列（LOD 0）
     \begin{subfigure}[t]{0.32\linewidth}
@@ -199,7 +347,9 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 \begin{table}[H]
     \caption{\label{tab:LOD}各级 LOD 对应的顶点数、三角形数和簇数}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{0.8\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         LOD级别 & 顶点数 & 三角数 & 簇数 \\ \hline
         LOD 0 & 5032 & 7128 & 80 \\ \hline
@@ -212,7 +362,7 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 本项目对运行时 LOD 选择机制进行了验证测试，通过远景、中景和近景三个典型视距下的渲染效果对比，展示了 LOD 机制的实际运行表现（见\autoref{fig:LOD select}）。图中第一行为原始场景渲染结果，第二行为应用 LOD 后的渲染结果，第三行通过色彩编码可视化 LOD 层级分布，其中蓝色表示最高精度的 LOD 0，紫色代表中间层级，红色则对应最简化的 LOD。
 
-\begin{figure*}[h]
+\begin{figure*}[htbp]
     \centering
     % 第一列（远景）
     \begin{subfigure}[b]{0.32\linewidth}
@@ -314,7 +464,9 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 \begin{table}[H]
     \caption{\label{tab:swap page}不同换页策略的性能比较}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{0.9\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         换页策略 & 命中概率 & 页表耗时 & 绑定耗时 & 总耗时 \\ \hline
         随机替换 & 99.2\% & 2.86ms & 1.59ms & 4.45ms \\ \hline
@@ -336,13 +488,17 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 \section{项目成果}
 
+本章围绕本项目的实际应用效果展开，重点展示当前设计的 GPU 驱动渲染管线在真实工业场景下的性能表现。通过对比传统渲染管线与本项目在多个关键指标上的实验数据，验证本方法在渲染性能与显存占用方面的优势。此外，本章总结了整个项目中所完成的核心工作，并结合当前的技术实现，对未来的研究与工程拓展方向进行展望。
+
 \subsection{最终实验结果及分析}
 
 本项目分别对 Sponza、Factory 两个场景进行了最终测试。两个场景的参数如\autoref{tab:scene}所示。
 
 \begin{table}[H]
     \caption{\label{tab:scene}测试场景信息}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|c|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{0.9\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         场景 & 顶点数 & 三角形数 & 场景文件大小（.gltf）\\ \hline
         Sponza & 190,448 & 262,241 & 81.9 MB \\ \hline
@@ -354,11 +510,13 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 \begin{table}[H]
     \caption{\label{tab:Sponza data}Sponza 场景运行参数}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{\linewidth}{|c|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         ~ & 预处理时间 & 显存占用 & GPU 时间 & 帧时间 \\ \hline
-        不开启 LOD 和流式加载 & 0.2s & 8.0MB & 0.8ms & 1.0ms \\ \hline
-        开启 LOD 和流式加载 & 1.8s & 34.5MB & 0.9ms & 1.0ms \\ \hline
+        不开启 LOD 和流式加载 & 0.2s & 8.0 MB & 0.8ms & 1.0ms \\ \hline
+        开启 LOD 和流式加载 & 1.8s & 34.5 MB & 0.9ms & 1.0ms \\ \hline
     \end{tabularx}
 \end{table}
 
@@ -382,13 +540,15 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
     \label{fig:Sponza fig}
 \end{figure*}
 
-\begin{table}[H]
+\begin{table}[htbp]
     \caption{\label{tab:Factory data}Factory 场景运行参数}
-    \begin{tabularx}{\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{\linewidth}{|c|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
         \hline
         ~ & 预处理时间 & 显存占用 & GPU 时间 & 帧时间 \\ \hline
-        不开启 LOD 和流式加载 & 61s & 5.2GB & 230.3ms & 231.9ms \\ \hline
-        开启 LOD 和流式加载 & 1480s & 5.1GB & 38.2ms & 38.5ms \\ \hline
+        不开启 LOD 和流式加载 & 61s & 5.2 GB & 230.3ms & 231.9ms \\ \hline
+        开启 LOD 和流式加载 & 1480s & 5.1 GB & 38.2ms & 38.5ms \\ \hline
     \end{tabularx}
 \end{table}
 
@@ -426,7 +586,7 @@ LOD 生成部分参考了 Nanite 的核心思想，采用了基于网格简化�
 
 其次，项目引入了先进的 LOD 机制。在预处理阶段能够较为高效地自动生成 LOD，在运行时可动态调整渲染物体的 LOD，兼顾画质与性能。开启 LOD 后，在大规模工业场景中的性能提升最高可达约 5 倍。
 
-最后，项目设计并实现了高效的流式加载机制。在预处理阶段将场景数据划分成页，并在运行结合页表进行调度管理。同时，借助稀疏资源这一技术路径，本项目能够管理远超显存容量的大型缓冲区，以实现虚拟几何技术。开启流式加载后，在场景数据规模超过显存容量的情况下，系统依然可以导入和渲染。
+最后，项目设计并实现了高效的流式加载机制。在预处理阶段将场景数据划分成页，并在运行时结合页表进行调度管理。同时，借助稀疏资源这一技术路径，本项目能够管理远超显存容量的大型缓冲区，以实现虚拟几何技术。开启流式加载后，在场景数据规模超过显存容量的情况下，系统依然可以导入和渲染。
 
 总体而言，本项目为大规模高精度工业场景的实时渲染提供了切实可行的技术路径，并为今后在该领域的进一步研究与应用奠定了坚实基础。
 
