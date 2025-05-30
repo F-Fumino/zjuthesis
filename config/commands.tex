@@ -177,27 +177,27 @@
 {
     \begin{table}[H]
         \centering \bfseries
-        \begin{tabularx}{\textwidth}{|>{\fangsong}c
-                                     |>{\fangsong}X<{\centering}
-                                     |>{\fangsong}X<{\centering}
-                                     |>{\fangsong}X<{\centering}
-                                     |>{\fangsong}X<{\centering}
-                                     |>{\fangsong}c|}
+        \begin{tabularx}{\textwidth}{|X<{\centering}
+                                     |c
+                                     |c
+                                     |c
+                                     |c
+                                     |c|}
             \hline
             \makecell{成绩\\比例}
-            & \makecell{\ifthenelse{\equal{\Type}{thesis}}{文献综述}{中期报告} \\（10\%）}
-            & \makecell{开题报告\\（15\%）}
-            & \makecell{外文翻译\\（5\%）}
-            & \ifthenelse{\equal{\Type}{thesis}}{毕业论文质量及答辩（70\%）}{毕业设计质量及答辩（70\%）}
-            & \makecell{总评\\成绩} \\
+            & \makecell{\ifthenelse{\equal{\Type}{thesis}}{文献综述}{文献综述/\\中期报告} \\占（10\%）}
+            & \makecell{开题报告\\占（15\%）}
+            & \makecell{外文翻译\\占（5\%）}
+            & \ifthenelse{\equal{\Type}{thesis}}{毕业论文质量及答辩（70\%）}{\makecell{毕业论文（设计）\\质量及答辩\\占（70\%）}}
+            & \makecell{总评成绩} \\
 
             \hline
             \multirow{2}*{分值}
-            & \multirow{2}*{\zihao{4}#1}
-            & \multirow{2}*{\zihao{4}#2}
-            & \multirow{2}*{\zihao{4}#3}
-            & \multirow{2}*{\zihao{4}#4}
-            & \multirow{2}*{\zihao{4}#5} \\
+            & ~
+            & ~
+            & ~
+            & ~
+            & ~ \\
 
             ~ & ~ & ~ & ~ & ~ & ~ \\
             \hline
@@ -224,8 +224,8 @@
             \hline
 
             \multirow{2}*{分值}
-            & \multirow{2}*{\zihao{4}#1}
-            & \multirow{2}*{\zihao{4}#2} \\
+            & ~
+            & ~ \\
             
             ~
             & ~
@@ -250,7 +250,7 @@
             \hline
 
             \multirow{2}*{分值}
-            & \multirow{2}*{\zihao{4}#1} \\
+            & ~ \\
 
             ~
             & ~ \\

@@ -1,10 +1,157 @@
 \cleardoublepage
-\chapter{中期检查}
+\chapter{中期报告}
 
 \section{项目概况}
 
+\subsection{项目简介}
+
+该项目旨在基于自研引擎设计并实现一套面向工业场景的 GPU 驱动渲染管线，借鉴 虚幻引擎的 Nanite 技术的核心思想，优化大规模工业数据的实时渲染效率。研究将重点关注三大核心领域：流式加载策略优化，以减少显存占用并提升加载速度；LOD 机制改进，针对工业模型的特点进行适配，确保在不同细节层次下仍保持高效渲染；剔除计算的结合，以进一步提高整体渲染性能。最终成果将为工业级实时可视化、数字孪生、工程仿真等应用提供技术支撑，推动 GPU 驱动渲染在工业领域的广泛应用和发展。
+
+\subsection{工作任务}
+
+本人的主要工作任务主要分为以下四个方面：
+
+（1）GPU 驱动渲染管线的设计与实现：研究和实现基于簇的渲染技术，使用任务着色器（Task Shader）和网格着色器（Mesh Shader）取代传统的渲染管线，从而提高渲染效率。同时，将原本由 CPU 负责的计算任务（如视锥剔除、遮挡剔除、LOD 选择）有效地转移至 GPU，从而减少 CPU 负载并提升整体性能。
+
+（2）流式加载机制的优化：研究并实现基于页表的智能资源加载策略，通过异步加载和高效的几何压缩算法来提升显存利用率，并确保大规模工业模型的高效加载。此外，还可以结合优先级调度机制，确保关键模型数据优先加载。
+
+（3）LOD 机制的改进：研究适用于工业模型的 LOD 生成方法，重点解决网格简化和簇合并等技术问题，并实现基于屏幕空间误差的动态 LOD 选择策略，以平衡视觉质量与渲染性能。
+
+（4）技术实现与性能优化：基于 Vulkan API 和自研引擎进行开发，利用多线程优化、同步管理、虚拟内存管理等技术，提高渲染管线的稳定性和性能。
+
 \section{工作进展情况}
+
+\subsection{已完成工作内容}
+
+目前已完成的模块包括基于簇的剔除和渲染、页表管理和流式加载、LOD的生成和选择等。
+
+\subsubsection{基于簇的剔除和渲染}
+
+本模块通过任务着色器、网格着色器与片段着色器（Fragment Shader）的协同工作进行实现。其中，任务着色器主要负责基于簇的剔除与 LOD 选择，而网格着色器和片段着色器则负责最终的渲染。
+
+基于簇的剔除操作包括视锥剔除和圆锥剔除。值得注意的是，剔除和 LOD 选择实质上是以簇组（Cluster/Meshlet Group）为单位进行的，每个簇（Cluster/Meshlet）都包含其所属簇组的编号。每个簇组包含自身的包围球、相对误差等信息，分别用于剔除和LOD 选择。
+
+基于簇的渲染采用了延迟渲染（Deferred Rendering）技术，在渲染过程中仅将每个像素的深度（depth）、颜色（albedo）和法线（normal）信息写入渲染目标（Render Target）。光照计算将在后续的渲染阶段进行。
+
+最终实现效果如图 2.1 所示，图中相同颜色的区域代表一个簇。每个簇最多包含 64 个顶点和 124 个三角形（暂定）。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{Meshlet.png}
+    \caption{基于簇的渲染效果图}
+\end{figure}
+
+\subsubsection{页表管理和流式加载}
+
+本模块基于Vulkan的稀疏资源（Sparse Resources）、设备地址（Device Address）等扩展完成。
+
+本项目将整个场景的顶点数据和索引数据分别存储在一个大的缓冲区中。以顶点缓冲区（Vertex Buffer）为例，顶点数据被划分为若干个页面（Page），每个页面的大小固定为 1MB（暂定）。这些页面由页表进行管理，页表能够存储的页数是固定的，并且需要在预处理阶段为每个页面分配显存，如图2.2所示。其中，“13”表示页表该位置对应的显存存储的是顶点缓冲区的第13页数据，而“Free”则表示该位置对应的显存尚未存储任何数据。
+
+在运行时，任务着色器会记录每一帧所需的页面编号，并在流式加载阶段使用页表进行页面的换入换出。换入的页面通过 Vulkan 的稀疏资源绑定机制，将页表中对应位置的显存绑定到顶点缓冲区的相应位置，并通过 CPU 向 GPU 传输相应的数据。换页策略采用最近最少使用（LRU）。
+
+此外，由于 Vulkan 对每个存储缓冲区的大小有 4GB 的限制，本项目在着色器中将使用多个顶点缓冲区，并通过设备地址扩展进行管理，以便在运行时处理大规模数据。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{页表.png}
+    \caption{顶点缓冲区对应的页表示意图}
+\end{figure}
+
+\subsubsection{LOD生成和选择}
+
+LOD 生成通过使用 MeshOptimizer、METIS 和 oneTBB 等库来实现。MeshOptimizer 库用于将模型划分为簇，并通过简化模型来生成不同的 LOD；METIS 库则用于将簇进一步划分为簇组，以确保运行时不同 LOD 之间能够无缝切换；oneTBB 库则用于多线程优化，从而减少预处理的时间。LOD 生成效果如图 2.3 所示。各级 LOD 所对应的顶点数、三角形数和簇数如表 2.1 所示。
+
+LOD 选择在几何（Geometry）阶段的任务着色器中完成。任务着色器通过计算每个簇组投影到屏幕上的误差值，来动态选择最合适的 LOD。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{LOD生成.png}
+    \caption{各级 LOD 生成效果示意图}
+\end{figure}
+
+\begin{table}[htbp]
+    \caption{各级 LOD 对应的顶点数、三角形数和簇数}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{0.8\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}|}
+        \hline
+        LOD级别 & 顶点数 & 三角数 & 簇数 \\ \hline
+        LOD 0 & 5032 & 7128 & 80 \\ \hline
+        LOD 3 & 2223 & 2997 & 36 \\ \hline
+        LOD 6 & 1108 & 1264 & 18 \\ \hline
+    \end{tabularx}
+\end{table}
+
+\subsection{阶段性成果}
+
+目前，整个系统框架已基本搭建完成，并针对一个小场景 Sponza 和一个工业大场景Factory 进行了测试。两个场景的具体参数如表 2.2 所示。
+
+\begin{table}[H]
+    \caption{测试场景信息}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{0.9\linewidth}{|X<{\centering}|X<{\centering}|X<{\centering}|}
+        \hline
+        场景 & 顶点数 & 三角形数 \\ \hline
+        Sponza & 190,448 & 262,241 \\ \hline
+        Factory & 140,875,512 & 46,958,504 \\ \hline
+    \end{tabularx}
+\end{table}
+
+在测试过程中，分别测量了两个场景在开启和不开启 LOD 及流式加载的情况下，预处理时间、显存占用、运行帧率等关键性能指标，具体数据见表 2.3 和表 2.4。运行效果的对比结果请参见图 2.4 和图 2.5。
+
+\begin{table}[H]
+    \caption{Sponza 场景运行参数}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{\linewidth}{|c|X<{\centering}|X<{\centering}|X<{\centering}|}
+        \hline
+        ~ & 预处理时间 & 显存占用 & 运行帧率 \\ \hline
+        不开启 LOD 和流式加载 & 0.2s & 8.0 MB & 1000FPS \\ \hline
+        开启 LOD 和流式加载 & 1.8s & 34.5 MB & 588FPS \\ \hline
+    \end{tabularx}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{midSponza.png}
+    \caption{Sponza场景运行效果对比图}
+\end{figure}
+
+\begin{table}[htbp]
+    \caption{Factory 场景运行参数}
+    \zihao{-5}
+    \centering
+    \begin{tabularx}{\linewidth}{|c|X<{\centering}|X<{\centering}|X<{\centering}|}
+        \hline
+        ~ & 预处理时间 & 显存占用 & 运行帧率 \\ \hline
+        不开启 LOD 和流式加载 & 60s & 5.2 GB & 5FPS \\ \hline
+        开启 LOD 和流式加载 & 1305s & 5.1 GB & 26FPS \\ \hline
+    \end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{midFactory.png}
+    \caption{Factory场景运行效果对比图}
+\end{figure}
+
+从上述结果可以看出，对于较小的场景，启用 LOD 和流式加载并没有带来显著的优化，反而可能成为负优化，未能有效减少显存占用或提高运行帧率；而对于较大场景，启用 LOD 和流式加载能够显著提高帧率。尽管如此，显存占用的优化效果并不明显，这是因为目前页表大小固定为 4GB，无论场景多大，顶点缓冲区的显存占用最多也为 4GB。当使用比 Factory 更大的场景进行测试时，显存占用的优化效果将更加明显。接下来，我计划寻找更大规模的场景，或将 Factory 场景复制 3-5 份，以更好地进行性能测试。
 
 \section{问题与建议}
 
+\subsection{遇到的问题}
+
+目前亟待解决的问题有如下两个：
+
+（1）顶点数据和索引数据存储方式问题：当前，顶点数据和索引数据以簇为单位存储，且分别存放在不同的缓冲区。然而，LOD 选择和剔除计算是以簇组为单位进行的，而且顶点数据和索引数据应当存储在同一页中一起进行换入换出，以确保良好的空间局部性。目前的存储方式导致顶点缓冲区和索引缓冲区的存储需求相比原始数据膨胀了约 3 倍，进而造成页表频繁地换入换出，甚至出现阻塞。为了解决这一问题，计划将数据改为以簇组为单位存储，并将顶点缓冲区和索引缓冲区合并为一个大缓冲区，针对该大缓冲区进行换入换出，这样可以显著减少页表的压力。
+
+（2）页表容量限制与场景空洞问题：由于目标场景较大，而页表的容量有限，容易出现所有页都在使用中的情况，导致无法进行换入换出操作，从而场景中出现空洞。为解决这个问题，计划采用类似拥塞控制的方法。当页表压力过大时，立即降低 LOD 选择的门槛，采用更激进的 LOD 选择策略，倾向于选择较低精度的 LOD；当页表压力缓解时，则恢复原本的 LOD 选择策略。此方法能够有效应对不同大小场景的渲染需求，并在不同视角下采取灵活的 LOD 选择策略。
+
+\subsection{建议}
+
+目前自研引擎的 Render Graph 对帧间同步的支持有限，可以进一步改进。
+
 \section{其他}
+
+由于完成整个渲染管线的工作量较大，本项目目前暂不考虑阴影计算、材质系统、遮挡剔除、编码解码等 Nanite 实现中的相关问题。
